@@ -1,0 +1,134 @@
+---
+title: "Netflix and Tv shows"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: "scroll"
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+
+netflix_movies <- read.csv(file.choose())
+View(netflix_movies)
+head(netflix_movies)
+glimpse(netflix_movies)
+summary(netflix_movies)
+date=netflix_movies$date_added
+date_formatted <- as.Date(date, format = "%d-%b-%y")
+# Format the date in the desired format
+formatted_date <- format(date_formatted, "%b-%d-%y")
+View(netflix_movies)
+
+rating_counts <- netflix_movies %>%
+  filter(rating != "") %>%
+  count(rating, type)
+
+movies <- netflix_movies%>%
+  filter(type == "Movie")%>%
+  filter(country!="")%>%
+  group_by(country)%>%
+  summarize(number =n())%>%
+  arrange(desc(number))%>%
+  slice(1:5)
+head(movies)
+
+TVshows <- netflix_movies%>%
+  filter(type == "TV Show")%>%
+  filter(country!="")%>%
+  group_by(country)%>%
+  summarize(number = n())%>%
+  arrange(desc(number))%>%
+  slice(1:10)
+head(TVshows)
+
+# Summarize duration of TV shows by release year
+# Remove "min" from duration column
+netflix_movies$duration <- gsub("min", "", as.character(netflix_movies$duration))
+# Convert duration to numeric
+netflix_movies$duration <- as.numeric(netflix_movies$duration)
+# Calculate average duration of movies over the years
+movie_avg_duration <- netflix_movies %>%
+  filter(type == "Movie") %>%
+  filter(!is.na(duration)) %>%
+  group_by(release_year) %>%
+  summarize(avg_duration = mean(duration, na.rm = TRUE))
+
+
+netflix_years <- netflix_movies %>%
+  filter(release_year >= 2010) %>%
+  group_by(type) %>%
+  arrange()
+```
+
+Row
+--------------
+
+### Chart A
+
+```{r}
+# Plot average duration of movies over the years
+ggplot(movie_avg_duration, aes(x = release_year, y = avg_duration)) +
+  geom_line(color = 'dark blue') +
+  labs(title = 'Average Duration of Movies Over the Years',
+       x = 'Year',
+       y = 'Duration') 
+```
+
+### Chart B
+
+
+```{r}
+
+ggplot(data = movies, aes(x = country, y = number)) +
+  geom_point() +
+  labs(title = "Number of Movies by Country", x = "Country", y = "Number of Movies") 
+  
+```
+
+Row
+-------------
+
+### Chart C
+
+```{r}
+
+pie(TVshows$number,  # Values
+    labels = TVshows$country,  # Labels
+    main = "Distribution of TV Shows by Country",  # Title
+    col = rainbow(length(TVshows$number)),  # Colors
+    cex = 0.6)  # Text size
+
+```
+
+### Chart D
+
+```{r}
+
+# Plot bar chart
+ggplot(data = netflix_years, aes(x = release_year, fill = type)) +
+  geom_bar(position = position_dodge()) +
+  labs(title = "Movies and TV Shows Released per Year",
+       x = "Release Year",
+       y = "Count") 
+```
+
+Row
+-------------------
+### Chart E
+
+```{r}
+# Plot histogram
+ggplot(rating_counts, aes(x = rating, y = n )) +
+  geom_histogram(stat = "identity", position = position_dodge(),col="blue") +
+  labs(title = 'Ratings - Movies vs TV Shows',
+       x = "Rating",
+       y = "Count")
+```
+
